@@ -1,0 +1,104 @@
+# .gitignore para Mastra AI Framework
+
+# ============================================
+# Dependencias
+# ============================================
+node_modules/
+.pnp/
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/install-state.gz
+
+# ============================================
+# Build outputs
+# ============================================
+dist/
+build/
+out/
+.mastra/
+.next/
+.nuxt/
+.cache/
+*.tsbuildinfo
+
+# ============================================
+# Variables de entorno
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+*.env
+
+# Mantener solo el ejemplo
+!.env.example
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================
+# Sistema operativo
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# ============================================
+# IDEs
+# ============================================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.nyc_output/
+*.test.js.snap
+
+# ============================================
+# Docker
+# ============================================
+*.dockerignore
+
+# ============================================
+# Backups
+# ============================================
+backups/
+*.bak
+*.backup
+
+# ============================================
+# Temporales
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ============================================
+# Específicos de Mastra
+# ============================================
+.mastra/cache/
+.mastra/logs/
+.mastra/temp/

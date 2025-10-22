@@ -1,0 +1,178 @@
+services:
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  postgres:
+    # Usa postgres:16-alpine para base de datos estándar
+    # Si necesitas pgvector para RAG/embeddings, descomenta la línea siguiente:
+    # image: pgvector/pgvector:pg16
+    image: postgres:16-alpine
+    container_name: mastra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-mastra}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - mastra-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Mastra Application
+  # ============================================
+  mastra:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: ${NODE_ENV:-production}
+    container_name: mastra-app
+    restart: unless-stopped
+    ports:
+      - "${MASTRA_PORT:-4111}:4111"
+    environment:
+      # Node Configuration
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 4111
+      HOST: 0.0.0.0
+      
+      # Database Configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-mastra}
+      
+      # API Keys (configurar en .env)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
+      
+      # Mastra Configuration
+      MASTRA_LOG_LEVEL: ${MASTRA_LOG_LEVEL:-info}
+      MASTRA_TELEMETRY_ENABLED: ${MASTRA_TELEMETRY_ENABLED:-false}
+      
+      # Storage Configuration
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-libsql}
+      
+    volumes:
+      # Montar código fuente en desarrollo
+      - ./src:/app/src:ro
+      # Persistir configuraciones
+      - ./mastra.config.ts:/app/mastra.config.ts:ro
+      # Logs
+      - mastra_logs:/app/logs
+    networks:
+      - mastra-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4111 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================
+  # Mastra Development (opcional)
+  # ============================================
+  mastra-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        NODE_ENV: development
+    container_name: mastra-dev
+    restart: unless-stopped
+    profiles:
+      - dev
+    ports:
+      - "${MASTRA_DEV_PORT:-3000}:3000"
+      - "${MASTRA_DEBUG_PORT:-9229}:9229"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-mastra}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - mastra_dev_logs:/app/logs
+    networks:
+      - mastra-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: npm run dev
+
+  # ============================================
+  # Redis (opcional - para caché y sesiones)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: mastra-redis
+    restart: unless-stopped
+    profiles:
+      - full
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mastra-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # ============================================
+  # PgAdmin (opcional - para administración DB)
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mastra-pgadmin
+    restart: unless-stopped
+    profiles:
+      - dev
+      - full
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@mastra.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - mastra-network
+    depends_on:
+      - postgres
+
+networks:
+  mastra-network:
+    driver: bridge
+    name: mastra-network
+
+volumes:
+  postgres_data:
+    name: mastra-postgres-data
+  redis_data:
+    name: mastra-redis-data
+  pgadmin_data:
+    name: mastra-pgadmin-data
+  mastra_logs:
+    name: mastra-logs
+  mastra_dev_logs:
+    name: mastra-dev-logs

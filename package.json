@@ -1,0 +1,46 @@
+{
+  "name": "agent-stone",
+  "version": "1.0.0",
+  "description": "Mastra AI Agent Framework - Dockerized Environment",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "mastra build",
+    "start": "node --import=./.mastra/output/instrumentation.mjs .mastra/output/index.mjs",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "docker:build": "docker build -t agent-stone:latest .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f mastra",
+    "docker:dev": "docker-compose --profile dev up",
+    "docker:full": "docker-compose --profile full up",
+    "docker:restart": "docker-compose restart mastra",
+    "docker:clean": "docker-compose down -v && docker system prune -f"
+  },
+  "keywords": [
+    "mastra",
+    "ai",
+    "agents",
+    "llm",
+    "typescript",
+    "docker"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@mastra/core": "latest",
+    "@mastra/libsql": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  }
+}
